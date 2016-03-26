@@ -1,10 +1,6 @@
 package cache
 
-import (
-	"sync"
-
-	"github.com/golang/glog"
-)
+import "sync"
 
 type String struct {
 	item
@@ -51,22 +47,16 @@ func (s *StringCache) get(key []byte) ([]byte, bool) {
 		return nil, false
 	}
 
-	if glog.V(4) {
-		glog.Infof("sget key %s found %#v val %s", key, v, v.b)
-	}
 	return v.b, ok
 }
 
 // ttl in seconds
 func (s *StringCache) set(key, val []byte, ttl int) {
 	var str String
-	str.b = append(str.b, val...)
+	str.b = val
 	if ttl > 0 {
 		// item ttl in nano seconds from epoch
 		str.ttl = CacheTimeNow() + int64(ttl)*1e9
-	}
-	if glog.V(4) {
-		glog.Infof("sset key %s, val %s, ttl %d, element %#v", key, val, ttl, str)
 	}
 	shard := &s.shards[hash(key)&_MASK]
 	shard.Lock()

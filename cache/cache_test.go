@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"os"
 	"testing"
 	"time"
@@ -8,22 +9,83 @@ import (
 
 func BenchmarkTimeNow(b *testing.B) {
 	b.ReportAllocs()
-	var val int64
+
 	for i := 0; i < b.N; i++ {
-		val = time.Now().UnixNano()
+		time.Now().UnixNano()
 	}
 
-	b.Logf("val %d\n", val)
 }
 
 func BenchmarkSysTime(b *testing.B) {
 	b.ReportAllocs()
-	var val int64
+
 	for i := 0; i < b.N; i++ {
-		val = globalSysTimeNow.Get()
+		globalSysTimeNow.Get()
 	}
 
-	b.Logf("val %d\n", val)
+}
+
+func TestSetGet(t *testing.T) {
+	cases := []struct {
+		Key    []byte
+		SetVal []byte
+		GetVal []byte
+		Expect bool
+	}{
+		{[]byte("k1"), []byte("v1"), []byte("v1"), true},
+		{[]byte("k2"), []byte(""), []byte("v2"), false},
+	}
+
+	for _, c := range cases {
+		SET(c.Key, c.SetVal, 0)
+		if v, ok := GET(c.Key); !ok || bytes.Equal(v, c.GetVal) != c.Expect {
+			t.Errorf("expected %v got %v\n", c.GetVal, v)
+		}
+	}
+}
+
+func BenchmarkSet(b *testing.B) {
+	key := []byte("k1")
+	val := []byte("v1")
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		SET(key, val, 0)
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	key := []byte("k1")
+	val := []byte("v1")
+	SET(key, val, 0)
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		GET(key)
+	}
+
+}
+
+func BenchmarkParallelSET(b *testing.B) {
+	key := []byte("k1")
+	val := []byte("v1")
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			SET(key, val, 0)
+		}
+	})
+}
+
+func BenchmarkParallelGET(b *testing.B) {
+	key := []byte("k1")
+	val := []byte("v1")
+	SET(key, val, 0)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			GET(key)
+		}
+	})
 }
 
 func TestMain(m *testing.M) {

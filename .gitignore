@@ -10,5 +10,6 @@ logs
 *.test
 *.cpu
 *.mem
+*.block
 kvc
 goapp

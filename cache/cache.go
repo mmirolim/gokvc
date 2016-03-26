@@ -57,7 +57,7 @@ var (
 	globalListCache   = &ListCache{}
 	globalDicCache    = &DicCache{}
 
-	hasher = fnv.New32()
+	hasher = fnv.New32a()
 )
 
 func CacheTimeNow() int64 {
