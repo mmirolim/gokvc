@@ -13,13 +13,12 @@ const (
 	_MASK          = _CHM_SHARD_NUM - 1
 
 	// kv commands
-	GET = "GET" // GET key
-	DEL = "DEL" // DEL key
-	SET = "SET" // SET key val
-	TTL = "TTL" // TTL key gets seconds left o expire
+	SGET = "GET" // GET key
+	SDEL = "DEL" // DEL key
+	SSET = "SET" // SET key val
+	STTL = "TTL" // TTL key gets seconds left o expire
 
 	// list commands
-
 	LGET  = "LGET"  // LGET key get all list
 	LDEL  = "LDEL"  // LDEL key deletes list
 	LPUSH = "LPUSH" // LPUSH key val prepends list with val
@@ -48,16 +47,15 @@ const (
 
 var (
 	// TTL passed with http headers
-	EXPIRE = []byte("EXPIRE") // EXPIRE key
 	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
 
 	initOnce sync.Once
 
 	globalSysTimeNow Atomic
 
-	globalStringCache *StringCache
-	globalListCache   *ListCache
-	globalDicCache    *DicCache
+	globalStringCache = &StringCache{}
+	globalListCache   = &ListCache{}
+	globalDicCache    = &DicCache{}
 
 	hasher = fnv.New32()
 )

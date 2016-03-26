@@ -1,6 +1,10 @@
 package cache
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/golang/glog"
+)
 
 type String struct {
 	item
@@ -25,7 +29,19 @@ func (s *StringCache) Len() int {
 	return counter
 }
 
-func (s *StringCache) GET(key []byte) ([]byte, bool) {
+func GET(key []byte) ([]byte, bool) {
+	return globalStringCache.get(key)
+}
+
+func SET(key, val []byte, ttl int) {
+	globalStringCache.set(key, val, ttl)
+}
+
+func DEL(key []byte) {
+	globalStringCache.del(key)
+}
+
+func (s *StringCache) get(key []byte) ([]byte, bool) {
 	shard := &s.shards[hash(key)&_MASK]
 	shard.RLock()
 	v, ok := shard.m[string(key)]
@@ -34,16 +50,23 @@ func (s *StringCache) GET(key []byte) ([]byte, bool) {
 	if ok && v.ttl != 0 && CacheTimeNow() > v.ttl {
 		return nil, false
 	}
+
+	if glog.V(4) {
+		glog.Infof("sget key %s found %#v val %s", key, v, v.b)
+	}
 	return v.b, ok
 }
 
 // ttl in seconds
-func (s *StringCache) SET(key, val []byte, ttl int) {
+func (s *StringCache) set(key, val []byte, ttl int) {
 	var str String
-	copy(str.b, val)
+	str.b = append(str.b, val...)
 	if ttl > 0 {
 		// item ttl in nano seconds from epoch
 		str.ttl = CacheTimeNow() + int64(ttl)*1e9
+	}
+	if glog.V(4) {
+		glog.Infof("sset key %s, val %s, ttl %d, element %#v", key, val, ttl, str)
 	}
 	shard := &s.shards[hash(key)&_MASK]
 	shard.Lock()
@@ -51,27 +74,9 @@ func (s *StringCache) SET(key, val []byte, ttl int) {
 	shard.Unlock()
 }
 
-func (s *StringCache) DEL(key []byte) {
+func (s *StringCache) del(key []byte) {
 	shard := &s.shards[hash(key)&_MASK]
 	shard.Lock()
 	delete(shard.m, string(key))
 	shard.Unlock()
-}
-
-// returns ttl left in seconds if exists
-func (s *StringCache) TTL(key []byte) int {
-	shard := &s.shards[hash(key)&_MASK]
-	shard.RLock()
-	v, ok := shard.m[string(key)]
-	shard.RUnlock()
-	switch {
-	case !ok:
-		return KeyNotExistCode
-	case v.ttl == 0:
-		return KeyHasNoTTLCode
-	case v.ttl > 0:
-		return int(v.ttl - CacheTimeNow()/1e9)
-	default:
-		return KeyTTLErrCode
-	}
 }
