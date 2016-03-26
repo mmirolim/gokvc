@@ -1,0 +1,13 @@
+*.sw*
+*.orig
+*.log
+*~
+*.*~
+#*#
+*.*#
+*.#*
+*.test
+*.cpu
+*.mem
+kvc
+goapp
