@@ -15,7 +15,7 @@ func get(ctx *fasthttp.RequestCtx) {
 
 	val, ok := cache.GET(key)
 	if !ok {
-		ctx.NotFound()
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		fmt.Fprintf(ctx, "key %s not found\n", key)
 		return
 	}
@@ -63,4 +63,16 @@ func del(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetBody(OK)
+}
+
+func sttl(ctx *fasthttp.RequestCtx) {
+	key := ctx.QueryArgs().QueryString()
+	r := cache.TTL(cache.STRING_CACHE, key)
+
+	ctx.SetBody([]byte(strconv.Itoa(r)))
+
+	if r == cache.KeyNotExistCode {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
+	}
 }

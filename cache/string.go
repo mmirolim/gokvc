@@ -15,16 +15,6 @@ type StringCache struct {
 	}
 }
 
-func (s *StringCache) Len() int {
-	var counter int
-	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		s.shards[i].RLock()
-		counter += len(s.shards[i].m)
-		s.shards[i].RUnlock()
-	}
-	return counter
-}
-
 func GET(key []byte) ([]byte, bool) {
 	return globalStringCache.get(key)
 }
@@ -37,13 +27,17 @@ func DEL(key []byte) {
 	globalStringCache.del(key)
 }
 
+func LEN() int {
+	return globalStringCache.len()
+}
+
 func (s *StringCache) get(key []byte) ([]byte, bool) {
 	shard := &s.shards[hash(key)&_MASK]
 	shard.RLock()
 	v, ok := shard.m[string(key)]
 	shard.RUnlock()
 	// check ttl
-	if ok && v.ttl != 0 && CacheTimeNow() > v.ttl {
+	if ok && v.ttl > 0 && CacheTimeNow() > v.ttl {
 		return nil, false
 	}
 
@@ -53,10 +47,13 @@ func (s *StringCache) get(key []byte) ([]byte, bool) {
 // ttl in seconds
 func (s *StringCache) set(key, val []byte, ttl int) {
 	var str String
+	str.k = key
 	str.b = val
 	if ttl > 0 {
 		// item ttl in nano seconds from epoch
 		str.ttl = CacheTimeNow() + int64(ttl)*1e9
+	} else {
+		str.ttl = KeyHasNoTTLCode
 	}
 	shard := &s.shards[hash(key)&_MASK]
 	shard.Lock()
@@ -69,4 +66,14 @@ func (s *StringCache) del(key []byte) {
 	shard.Lock()
 	delete(shard.m, string(key))
 	shard.Unlock()
+}
+
+func (s *StringCache) len() int {
+	var counter int
+	for i := 0; i < _CHM_SHARD_NUM; i++ {
+		s.shards[i].RLock()
+		counter += len(s.shards[i].m)
+		s.shards[i].RUnlock()
+	}
+	return counter
 }

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"container/list"
 	"hash/fnv"
 	"sync"
 	"sync/atomic"
@@ -46,9 +45,6 @@ const (
 )
 
 var (
-	// TTL passed with http headers
-	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
-
 	initOnce sync.Once
 
 	globalSysTimeNow Atomic
@@ -67,73 +63,9 @@ func CacheTimeNow() int64 {
 type CacheType int
 
 type item struct {
-	ttl int64 // 0 is no ttl
+	k   []byte // store key
+	ttl int64  // 0 is no ttl
 	la  int64
-}
-
-type List struct {
-	item
-	ll *list.List
-}
-
-type Dic struct {
-	item
-	dic map[string]element
-}
-
-type element struct {
-	k []byte // key
-	v []byte // value
-}
-
-type Cacher interface {
-	Len() int
-	DEL(key []byte)
-	TTL(key []byte) int
-}
-
-type ListCache struct {
-	shards [_CHM_SHARD_NUM]struct {
-		sync.RWMutex
-		m   map[string]List
-		pad [128]byte
-	}
-}
-
-type DicCache struct {
-	shards [_CHM_SHARD_NUM]struct {
-		sync.RWMutex
-		m   map[string]Dic
-		pad [128]byte
-	}
-}
-
-// returns ttl left in seconds if exists
-func getTtl(ct CacheType, key []byte) int {
-	var ttl int64
-	switch ct {
-	case STRING_CACHE:
-		shard := globalStringCache.shards[hash(key)&_MASK]
-		shard.RLock()
-		ttl = shard.m[string(key)].ttl
-		shard.RUnlock()
-	case LIST_CACHE:
-		shard := globalListCache.shards[hash(key)&_MASK]
-		shard.RLock()
-		ttl = shard.m[string(key)].ttl
-		shard.RUnlock()
-	case DIC_CACHE:
-		shard := globalDicCache.shards[hash(key)&_MASK]
-		shard.RLock()
-		ttl = shard.m[string(key)].ttl
-		shard.RUnlock()
-	}
-
-	if ttl > 0 {
-		return int(ttl - CacheTimeNow()/1e9)
-	}
-
-	return KeyNotExistCode
 }
 
 func hash(data []byte) uintptr {
@@ -180,22 +112,49 @@ func (a *Atomic) SetSysTS() {
 	atomic.StoreInt64(&a.val, globalSysTimeNow.Get())
 }
 
-func (s *ListCache) Len() int {
-	var counter int
-	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		s.shards[i].RLock()
-		counter += len(s.shards[i].m)
-		s.shards[i].RUnlock()
-	}
-	return counter
+func TTL(ct CacheType, key []byte) int {
+	return getTtl(ct, key)
 }
 
-func (s *DicCache) Len() int {
-	var counter int
-	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		s.shards[i].RLock()
-		counter += len(s.shards[i].m)
-		s.shards[i].RUnlock()
+// returns ttl left in seconds if exists
+func getTtl(ct CacheType, key []byte) int {
+	var it item
+
+	switch ct {
+	case STRING_CACHE:
+		shard := globalStringCache.shards[hash(key)&_MASK]
+		shard.RLock()
+		it = shard.m[string(key)].item
+		shard.RUnlock()
+	case LIST_CACHE:
+		shard := globalListCache.shards[hash(key)&_MASK]
+		shard.RLock()
+		it = shard.m[string(key)].item
+		shard.RUnlock()
+	case DIC_CACHE:
+		shard := globalDicCache.shards[hash(key)&_MASK]
+		shard.RLock()
+		it = shard.m[string(key)].item
+		shard.RUnlock()
 	}
-	return counter
+
+	switch {
+	case it.k == nil:
+		return KeyNotExistCode
+
+	case it.ttl == KeyHasNoTTLCode:
+		return KeyHasNoTTLCode
+
+	case it.ttl > 0:
+		// convert diff to seconds from nanoseconds
+		diff := int((it.ttl - CacheTimeNow()) / 1e9)
+		if diff <= 0 {
+			// already expired
+			return KeyNotExistCode
+		}
+
+		return diff
+	}
+
+	return KeyNotExistCode
 }

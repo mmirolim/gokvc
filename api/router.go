@@ -11,9 +11,13 @@ import (
 
 var (
 	EQUAL_SIGN = []byte("=")
-	SGET       = strings.ToLower("/" + cache.SGET)
-	SSET       = strings.ToLower("/" + cache.SSET)
-	SDEL       = strings.ToLower("/" + cache.SDEL)
+	PING       = "/ping"        // ping api
+	PONG       = []byte("pong") // ping response
+
+	SGET = strings.ToLower("/" + cache.SGET)
+	SSET = strings.ToLower("/" + cache.SSET)
+	SDEL = strings.ToLower("/" + cache.SDEL)
+	STTL = strings.ToLower("/" + cache.STTL)
 
 	// TTL passed with http headers
 	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
@@ -39,6 +43,10 @@ func New() fasthttp.RequestHandler {
 			set(ctx)
 		case SDEL:
 			del(ctx)
+		case STTL:
+			sttl(ctx)
+		case PING:
+			ping(ctx)
 		case EXPVAR:
 			expvarhandler.ExpvarHandler(ctx)
 		default:
@@ -47,4 +55,8 @@ func New() fasthttp.RequestHandler {
 	}
 
 	return m
+}
+
+func ping(ctx *fasthttp.RequestCtx) {
+	ctx.SetBody(PONG)
 }
