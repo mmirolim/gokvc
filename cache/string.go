@@ -40,7 +40,7 @@ func (c *StringCache) get(key []byte) ([]byte, bool) {
 	v, ok := shard.m[string(key)]
 	shard.RUnlock()
 
-	if ok && v.IsExpired() {
+	if !ok || (ok && v.IsExpired()) {
 		return nil, false
 	}
 

@@ -22,7 +22,8 @@ const (
 	// list commands
 	LGET  = "/lget"  // LGET key get all list
 	LDEL  = "/ldel"  // LDEL key deletes list
-	LPUSH = "/lpush" // LPUSH key val prepends list with val
+	LPUSH = "/lpush" // LPUSH key val prepends list with element
+	LPOP  = "/lpop"  // LPOP key removes and returns the first element of the list stored at key
 	LTTL  = "/lttl"  // TTL key gets seconds left o expire
 	LKEYS = "/lkeys" // LKEYS gets all keys of lists
 	LLEN  = "/llen"  // LLEN gets number of list elements
@@ -60,6 +61,7 @@ var (
 		SLEN:   slen,
 		LGET:   lget,
 		LPUSH:  lpush,
+		LPOP:   lpop,
 		LDEL:   ldel,
 		LKEYS:  lkeys,
 		LLEN:   llen,

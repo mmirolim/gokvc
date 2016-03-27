@@ -10,11 +10,41 @@ import (
 )
 
 func lget(ctx *fasthttp.RequestCtx) {
-	ctx.SetBody([]byte("not impl"))
+	key := ctx.QueryArgs().QueryString()
+
+	v, ok := cache.LGET(key)
+	if ok {
+		fmt.Fprintf(ctx, "%s", v)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func lpush(ctx *fasthttp.RequestCtx) {
-	ctx.SetBody([]byte("not impl"))
+	var ttl int
+	key := ctx.QueryArgs().QueryString()
+	val := ctx.QueryArgs().PeekBytes(key)
+
+	ttlVal := ctx.Request.Header.PeekBytes(KEYTTL)
+	if ttlVal != nil {
+		ttl, _ = strconv.Atoi(string(ttlVal))
+	}
+
+	cache.LPUSH(key, val, ttl)
+
+	ctx.SetBody(OK)
+}
+
+func lpop(ctx *fasthttp.RequestCtx) {
+	key := ctx.QueryArgs().QueryString()
+
+	v, ok := cache.LPOP(key)
+	if ok {
+		fmt.Fprintf(ctx, "%s", v)
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func ldel(ctx *fasthttp.RequestCtx) {
