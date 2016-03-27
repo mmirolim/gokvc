@@ -12,4 +12,5 @@ logs
 *.mem
 *.block
 kvc
+gokvc
 goapp

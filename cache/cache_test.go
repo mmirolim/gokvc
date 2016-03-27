@@ -44,6 +44,23 @@ func TestSetGet(t *testing.T) {
 	}
 }
 
+func TestDel(t *testing.T) {
+	key := []byte("kdel")
+	val := []byte("vdel")
+	SET(key, val, 0)
+	_, ok := GET(key)
+	if !ok {
+		t.Errorf("key not found", key)
+	}
+
+	DEL(key)
+	_, ok = GET(key)
+	if ok {
+		t.Errorf("expected key %s !ok got ok", key)
+	}
+
+}
+
 func BenchmarkSet(b *testing.B) {
 	key := []byte("k1")
 	val := []byte("v1")
@@ -62,6 +79,18 @@ func BenchmarkGet(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		GET(key)
+	}
+
+}
+
+func BenchmarkDel(b *testing.B) {
+	key := []byte("k1")
+	val := []byte("v1")
+	SET(key, val, 0)
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		DEL(key)
 	}
 
 }

@@ -1,4 +1,4 @@
-APP = kvc
+APP = gokvc
 # set commit short
 COMMIT =`git rev-parse --short HEAD`
 # set build time
