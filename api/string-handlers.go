@@ -15,7 +15,7 @@ func get(ctx *fasthttp.RequestCtx) {
 
 	val, ok := cache.GET(key)
 	if !ok {
-		ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
+		ctx.NotFound()
 		fmt.Fprintf(ctx, "key %s not found\n", key)
 		return
 	}
@@ -24,7 +24,7 @@ func get(ctx *fasthttp.RequestCtx) {
 		glog.Infof("key %s ok %b val %s", key, ok, val)
 	}
 
-	fmt.Fprintf(ctx, "get key %s val %s\n", key, val)
+	ctx.SetBody(val)
 
 }
 
@@ -33,7 +33,7 @@ func set(ctx *fasthttp.RequestCtx) {
 	qstr := ctx.QueryArgs().QueryString()
 	n := bytes.Index(qstr, EQUAL_SIGN)
 	if n == -1 {
-		ctx.Response.SetStatusCode(fasthttp.StatusBadRequest)
+		ctx.SetStatusCode(fasthttp.StatusBadRequest)
 		fmt.Fprint(ctx, "wrong query format")
 		return
 	}
@@ -49,21 +49,18 @@ func set(ctx *fasthttp.RequestCtx) {
 	}
 
 	cache.SET(key, val, ttl)
-	fmt.Fprintf(ctx, "set key %s val %s\n", key, val)
-	if ttl > 0 {
-		fmt.Fprintf(ctx, "with ttl %d seconds\n", ttl)
-	}
 
+	ctx.SetBody(OK)
 }
 
 func del(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().QueryString()
 	cache.DEL(key)
-	ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 
 	if glog.V(3) {
 		glog.Infof("key %s", key)
 	}
 
-	fmt.Fprintf(ctx, "del key %s\n", key)
+	ctx.SetBody(OK)
 }

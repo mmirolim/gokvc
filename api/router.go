@@ -19,6 +19,7 @@ var (
 	EXPVAR = "/expvar"
 
 	CACHE_CONTROL = []byte("Cache-control")
+	OK            = []byte("OK")
 )
 
 func New() fasthttp.RequestHandler {
