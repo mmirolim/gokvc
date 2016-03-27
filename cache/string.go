@@ -28,16 +28,19 @@ func DEL(key []byte) {
 }
 
 func LEN() int {
-	return globalStringCache.len()
+	return globalStringCache.countKeys()
 }
 
-func (s *StringCache) get(key []byte) ([]byte, bool) {
-	shard := &s.shards[hash(key)&_MASK]
+func KEYS() [][]byte {
+	return globalStringCache.keys()
+}
+func (c *StringCache) get(key []byte) ([]byte, bool) {
+	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
 	v, ok := shard.m[string(key)]
 	shard.RUnlock()
-	// check ttl
-	if ok && v.ttl > 0 && CacheTimeNow() > v.ttl {
+
+	if ok && v.IsExpired() {
 		return nil, false
 	}
 
@@ -45,35 +48,53 @@ func (s *StringCache) get(key []byte) ([]byte, bool) {
 }
 
 // ttl in seconds
-func (s *StringCache) set(key, val []byte, ttl int) {
+func (c *StringCache) set(key, val []byte, ttl int) {
 	var str String
+
 	str.k = key
 	str.b = val
-	if ttl > 0 {
-		// item ttl in nano seconds from epoch
-		str.ttl = CacheTimeNow() + int64(ttl)*1e9
-	} else {
-		str.ttl = KeyHasNoTTLCode
-	}
-	shard := &s.shards[hash(key)&_MASK]
+	str.SetTTL(ttl)
+
+	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 	shard.m[string(key)] = str
 	shard.Unlock()
 }
 
-func (s *StringCache) del(key []byte) {
-	shard := &s.shards[hash(key)&_MASK]
+func (c *StringCache) del(key []byte) {
+	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 	delete(shard.m, string(key))
 	shard.Unlock()
 }
 
-func (s *StringCache) len() int {
+// returns slice of keys
+func (c *StringCache) keys() [][]byte {
+	// init cap for slice
+	keys := make([][]byte, 0, 1000)
+	for i := 0; i < _CHM_SHARD_NUM; i++ {
+		shard := c.shards[i]
+		shard.RLock()
+		for k := range shard.m {
+			keys = append(keys, shard.m[k].k)
+		}
+		shard.RUnlock()
+	}
+
+	return keys
+}
+
+func (c *StringCache) countKeys() int {
 	var counter int
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		s.shards[i].RLock()
-		counter += len(s.shards[i].m)
-		s.shards[i].RUnlock()
+		c.shards[i].RLock()
+		for k := range c.shards[i].m {
+			// count only not expired keys
+			if !c.shards[i].m[k].IsExpired() {
+				counter++
+			}
+		}
+		c.shards[i].RUnlock()
 	}
 	return counter
 }

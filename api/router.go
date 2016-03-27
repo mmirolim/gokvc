@@ -1,33 +1,77 @@
 package api
 
 import (
-	"strings"
-
 	"github.com/golang/glog"
-	"github.com/mmirolim/kvc/cache"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/expvarhandler"
 )
 
+const (
+	PING = "/ping" // ping api
+	// system
+	EXPVAR = "/expvar"
+
+	// kv commands
+	SGET  = "/get"  // GET key
+	SDEL  = "/del"  // DEL key
+	SSET  = "/set"  // SET key val
+	STTL  = "/ttl"  // TTL key gets seconds left o expire
+	SKEYS = "/keys" // SKEYS gets all keys of strings
+	SLEN  = "/slen" // SLEN gets number of string elements
+
+	// list commands
+	LGET  = "/lget"  // LGET key get all list
+	LDEL  = "/ldel"  // LDEL key deletes list
+	LPUSH = "/lpush" // LPUSH key val prepends list with val
+	LTTL  = "/lttl"  // TTL key gets seconds left o expire
+	LKEYS = "/lkeys" // LKEYS gets all keys of lists
+	LLEN  = "/llen"  // LLEN gets number of list elements
+
+	// dictionary commands
+	DGET  = "/dget"  // DGET key get all field from dic
+	DDEL  = "/ddel"  // DDEL key delete dic
+	DKGET = "/dkget" // DKGET key field get field from dic
+	DKDEL = "/dkdel" // DKDEL key field delete field in dic
+	DKSET = "/dkset" // DKSET key field val sets field in dic to val
+	DTTL  = "/dttl"  // TTL key gets seconds left o expire
+	DKEYS = "/dkeys" // DKEYS gets all keys of dics
+	DLEN  = "/dlen"  // DLEN return number of dic elements
+)
+
 var (
 	EQUAL_SIGN = []byte("=")
-	PING       = "/ping"        // ping api
-	PONG       = []byte("pong") // ping response
 
-	SGET = strings.ToLower("/" + cache.SGET)
-	SSET = strings.ToLower("/" + cache.SSET)
-	SDEL = strings.ToLower("/" + cache.SDEL)
-	STTL = strings.ToLower("/" + cache.STTL)
+	PONG = []byte("pong") // ping response
 
 	// TTL passed with http headers
 	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
 
-	// system
-	EXPVAR = "/expvar"
-
 	HTTP_CACHE_CONTROL = []byte("Cache-control")
 	HTTP_NO_CACHE      = []byte("private, max-age=0, no-cache")
 	OK                 = []byte("OK")
+
+	HandlersMap = map[string]fasthttp.RequestHandler{
+		PING:   ping,
+		SGET:   get,
+		SSET:   set,
+		SDEL:   del,
+		STTL:   sttl,
+		SKEYS:  skeys,
+		SLEN:   slen,
+		LGET:   lget,
+		LPUSH:  lpush,
+		LDEL:   ldel,
+		LKEYS:  lkeys,
+		LLEN:   llen,
+		DGET:   dget,
+		DKGET:  dkget,
+		DKSET:  dkset,
+		DDEL:   ddel,
+		DTTL:   dttl,
+		DKEYS:  dkeys,
+		DLEN:   dlen,
+		EXPVAR: expvarhandler.ExpvarHandler,
+	}
 )
 
 func New() fasthttp.RequestHandler {
@@ -36,22 +80,15 @@ func New() fasthttp.RequestHandler {
 		if glog.V(2) {
 			glog.Infof("url %s", ctx.Path())
 		}
-		switch string(ctx.Path()) {
-		case SGET:
-			get(ctx)
-		case SSET:
-			set(ctx)
-		case SDEL:
-			del(ctx)
-		case STTL:
-			sttl(ctx)
-		case PING:
-			ping(ctx)
-		case EXPVAR:
-			expvarhandler.ExpvarHandler(ctx)
-		default:
+
+		handler, ok := HandlersMap[string(ctx.Path())]
+
+		if ok {
+			handler(ctx)
+		} else {
 			ctx.Error("cmd not found", fasthttp.StatusNotFound)
 		}
+
 	}
 
 	return m

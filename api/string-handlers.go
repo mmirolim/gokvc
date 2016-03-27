@@ -76,3 +76,11 @@ func sttl(ctx *fasthttp.RequestCtx) {
 		return
 	}
 }
+
+func skeys(ctx *fasthttp.RequestCtx) {
+	fmt.Fprintf(ctx, "%s", cache.KEYS())
+}
+
+func slen(ctx *fasthttp.RequestCtx) {
+	ctx.SetBody([]byte(strconv.Itoa(cache.LEN())))
+}

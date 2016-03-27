@@ -11,28 +11,6 @@ const (
 	_CHM_SHARD_NUM = 1 << 6
 	_MASK          = _CHM_SHARD_NUM - 1
 
-	// kv commands
-	SGET = "GET" // GET key
-	SDEL = "DEL" // DEL key
-	SSET = "SET" // SET key val
-	STTL = "TTL" // TTL key gets seconds left o expire
-
-	// list commands
-	LGET  = "LGET"  // LGET key get all list
-	LDEL  = "LDEL"  // LDEL key deletes list
-	LPUSH = "LPUSH" // LPUSH key val prepends list with val
-	LLEN  = "LLEN"  // LLEN key gets length of list
-	LTTL  = "LTTL"  // TTL key gets seconds left o expire
-
-	// dictionary commands
-	DGET   = "DGET"   // DGET key get all field from dic
-	DDEL   = "DDEL"   // DDEL key delete dic
-	DKGET  = "DKGET"  // DKGET key field get field from dic
-	DKDEL  = "DKDEL"  // DKDEL key field delete field in dic
-	DKSET  = "DKSET"  // DKSET key field val sets field in dic to val
-	DKSGET = "DKSGET" // DKSGET key gets all fields in dic
-	DTTL   = "DTTL"   // TTL key gets seconds left o expire
-
 	// TTL codes
 	KeyTTLErrCode   = -3
 	KeyNotExistCode = -2
@@ -138,23 +116,40 @@ func getTtl(ct CacheType, key []byte) int {
 		shard.RUnlock()
 	}
 
-	switch {
-	case it.k == nil:
+	if it.k == nil || it.IsExpired() {
 		return KeyNotExistCode
-
-	case it.ttl == KeyHasNoTTLCode:
-		return KeyHasNoTTLCode
-
-	case it.ttl > 0:
-		// convert diff to seconds from nanoseconds
-		diff := int((it.ttl - CacheTimeNow()) / 1e9)
-		if diff <= 0 {
-			// already expired
-			return KeyNotExistCode
-		}
-
-		return diff
 	}
 
-	return KeyNotExistCode
+	if it.ttl == KeyHasNoTTLCode {
+		return KeyHasNoTTLCode
+	}
+
+	return it.FormatTTL(time.Second)
+}
+
+func (it item) IsExpired() bool {
+	if it.ttl == KeyHasNoTTLCode || (it.ttl-CacheTimeNow()) > 0 {
+		return false
+	}
+	return true
+}
+
+func (it *item) SetTTL(ttl int) {
+	if ttl <= 0 {
+		it.ttl = KeyHasNoTTLCode
+	}
+	// current time + ttl time in nanoseconds
+	it.ttl = CacheTimeNow() + int64(ttl)*1e9
+}
+
+func (it *item) FormatTTL(in time.Duration) int {
+	switch in {
+	case time.Microsecond:
+		return int((it.ttl - CacheTimeNow()) / 1e3)
+	case time.Millisecond:
+		return int((it.ttl - CacheTimeNow()) / 1e6)
+	default:
+		// in seconds
+		return int((it.ttl - CacheTimeNow()) / 1e9)
+	}
 }
