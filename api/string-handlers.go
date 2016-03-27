@@ -37,7 +37,7 @@ func set(ctx *fasthttp.RequestCtx) {
 		fmt.Fprint(ctx, "wrong query format")
 		return
 	}
-	ttlVal := ctx.Request.Header.PeekBytes(cache.KEYTTL)
+	ttlVal := ctx.Request.Header.PeekBytes(KEYTTL)
 	if ttlVal != nil {
 		ttl, _ = strconv.Atoi(string(ttlVal))
 	}

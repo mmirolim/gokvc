@@ -15,16 +15,20 @@ var (
 	SSET       = strings.ToLower("/" + cache.SSET)
 	SDEL       = strings.ToLower("/" + cache.SDEL)
 
+	// TTL passed with http headers
+	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
+
 	// system
 	EXPVAR = "/expvar"
 
-	CACHE_CONTROL = []byte("Cache-control")
-	OK            = []byte("OK")
+	HTTP_CACHE_CONTROL = []byte("Cache-control")
+	HTTP_NO_CACHE      = []byte("private, max-age=0, no-cache")
+	OK                 = []byte("OK")
 )
 
 func New() fasthttp.RequestHandler {
 	m := func(ctx *fasthttp.RequestCtx) {
-		ctx.Response.Header.SetBytesK(CACHE_CONTROL, "private, max-age=0, no-cache")
+		ctx.Response.Header.SetCanonical(HTTP_CACHE_CONTROL, HTTP_NO_CACHE)
 		if glog.V(2) {
 			glog.Infof("url %s", ctx.Path())
 		}
