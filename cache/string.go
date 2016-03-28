@@ -60,7 +60,6 @@ func (c *StringCache) set(key, val []byte, ttl int) bool {
 	}
 	var str String
 
-	str.k = key
 	str.b = val
 	str.SetTTL(ttl)
 
@@ -95,7 +94,7 @@ func (c *StringCache) keys() [][]byte {
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, shard.m[k].k)
+			keys = append(keys, []byte(k))
 		}
 
 		shard.RUnlock()

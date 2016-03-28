@@ -68,6 +68,7 @@ var (
 		LDEL:   ldel,
 		LKEYS:  lkeys,
 		LLEN:   llen,
+		LTTL:   lttl,
 		DGET:   dget,
 		DFGET:  dfget,
 		DFSET:  dfset,
@@ -93,7 +94,7 @@ func New() fasthttp.RequestHandler {
 
 		if glog.V(2) {
 			glog.Infof(
-				"req duration %f ms url %s args %s",
+				"req %f ms %s [%s]",
 				time.Since(start).Seconds()*1000,
 				ctx.Path(),
 				ctx.QueryArgs(),

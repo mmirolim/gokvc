@@ -65,7 +65,7 @@ func (c *DicCache) get(key []byte) (map[string][]byte, bool) {
 		shard.RUnlock()
 		return nil, false
 	} else {
-		res := make(map[string][]byte)
+		res = make(map[string][]byte)
 		for k, v := range v.dic {
 			res[k] = v
 		}
@@ -111,7 +111,7 @@ func (c *DicCache) fget(key, fld []byte) ([]byte, bool) {
 		shard.RUnlock()
 		return nil, false
 	} else {
-		val = v.dic[string(fld)]
+		val, ok = v.dic[string(fld)]
 	}
 
 	shard.RUnlock()
@@ -126,8 +126,17 @@ func (c *DicCache) fdel(key, fld []byte) bool {
 
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
+	v, ok := shard.m[string(key)]
+	if !ok || v.IsExpired() {
+		shard.Unlock()
+		return false
+	}
 
 	delete(shard.m[string(key)].dic, string(fld))
+	if len(shard.m[string(key)].dic) == 0 {
+		// no elements in dic
+		delete(shard.m, string(key))
+	}
 
 	shard.Unlock()
 
@@ -156,7 +165,7 @@ func (c *DicCache) keys() [][]byte {
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, shard.m[k].k)
+			keys = append(keys, []byte(k))
 		}
 
 		shard.RUnlock()

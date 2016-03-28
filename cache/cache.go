@@ -41,8 +41,7 @@ func CacheTimeNow() int64 {
 type CacheType int
 
 type item struct {
-	k   []byte // store key
-	ttl int64  // 0 is no ttl
+	ttl int64
 	la  int64
 }
 
@@ -121,7 +120,7 @@ func getTtl(ct CacheType, key []byte) int {
 		return KeyTTLErrCode
 	}
 
-	if it.k == nil || it.IsExpired() {
+	if it.IsExpired() {
 		return KeyNotExistCode
 	}
 

@@ -63,7 +63,7 @@ func dfdel(ctx *fasthttp.RequestCtx) {
 }
 
 func ddel(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
 	if cache.DDEL(key) {
 		ctx.SetBody(OK)
@@ -74,7 +74,7 @@ func ddel(ctx *fasthttp.RequestCtx) {
 }
 
 func dttl(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
 	r := cache.TTL(cache.DIC_CACHE, key)
 	if r == cache.KeyNotExistCode {

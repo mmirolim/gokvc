@@ -11,9 +11,8 @@ type List struct {
 }
 
 func NewList(key, val []byte, ttl int) List {
-	it := item{k: key}
+	var it item
 	it.SetTTL(ttl)
-
 	ll := list.New()
 	ll.PushFront(val)
 
@@ -68,11 +67,8 @@ func (c *ListCache) get(key []byte) ([][]byte, bool) {
 	if !ok || (ok && v.IsExpired()) {
 		shard.RUnlock()
 		return nil, false
-	}
-
-	if ok {
-		vals := make([][]byte, 0, 10)
-
+	} else {
+		vals = make([][]byte, 0, 10)
 		for e := v.ll.Front(); e != nil; e = e.Next() {
 			vals = append(vals, e.Value.([]byte))
 		}
@@ -120,6 +116,10 @@ func (c *ListCache) pop(key []byte) ([]byte, bool) {
 		return val, false
 	} else {
 		val = v.ll.Remove(v.ll.Front()).([]byte)
+		if v.ll.Len() == 0 {
+			// no elements del item
+			delete(shard.m, string(key))
+		}
 	}
 
 	shard.Unlock()
@@ -150,7 +150,7 @@ func (c *ListCache) keys() [][]byte {
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, shard.m[k].k)
+			keys = append(keys, []byte(k))
 		}
 
 		shard.RUnlock()
