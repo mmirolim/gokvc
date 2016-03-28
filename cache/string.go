@@ -2,11 +2,14 @@ package cache
 
 import "sync"
 
+// String cache item struct
 type String struct {
 	item
 	b []byte
 }
 
+// StringCache is bucket holding string caches
+// in stripped map
 type StringCache struct {
 	shards [_CHM_SHARD_NUM]struct {
 		sync.RWMutex
@@ -15,24 +18,41 @@ type StringCache struct {
 	}
 }
 
+// GET the value of a key,
+// returns []byte, true
+// or nil, false if expired or not exist
 func GET(key []byte) ([]byte, bool) {
 	return globalStringCache.get(key)
 }
 
+// SET the key with value and ttl
+// ttl 0 means no expire
+// returns false if key, val is nil
 func SET(key, val []byte, ttl int) bool {
 	return globalStringCache.set(key, val, ttl)
 }
 
+// DEL removes element by key
 func DEL(key []byte) bool {
 	return globalStringCache.del(key)
 }
 
+// LEN returns number of not expired keys
+// of stored strings
 func LEN() int {
 	return globalStringCache.countKeys()
 }
 
+// KEYS returns []string of all not expired keys
+// of stored strings
 func KEYS() []string {
 	return globalStringCache.keys()
+}
+
+// TTL returns ttl in seconds of key
+// of ttl codes
+func TTL(key []byte) int {
+	return getTtl(STRING_CACHE, key)
 }
 
 func (c *StringCache) get(key []byte) ([]byte, bool) {

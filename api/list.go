@@ -61,7 +61,7 @@ func ldel(ctx *fasthttp.RequestCtx) {
 func lttl(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().PeekBytes(PKEY)
 
-	r := cache.TTL(cache.LIST_CACHE, key)
+	r := cache.LTTL(key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 	}

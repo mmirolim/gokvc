@@ -5,12 +5,16 @@ import (
 	"sync"
 )
 
+// List cache item struct
 type List struct {
 	item
 	ll *list.List
 }
 
-func NewList(key, val []byte, ttl int) List {
+// NewList initialize List
+// creates list and sets first element value
+// to val and sets ttl
+func NewList(val []byte, ttl int) List {
 	var it item
 	it.SetTTL(ttl)
 	ll := list.New()
@@ -19,6 +23,8 @@ func NewList(key, val []byte, ttl int) List {
 	return List{it, ll}
 }
 
+// ListCache is bucket holding list caches
+// in stripped map
 type ListCache struct {
 	shards [_CHM_SHARD_NUM]struct {
 		sync.RWMutex
@@ -27,30 +33,42 @@ type ListCache struct {
 	}
 }
 
+// LGET returns [][]byte of values stored in List
+// by a key, return nil, false if not exists or key is nil
 func LGET(key []byte) ([][]byte, bool) {
 	return globalListCache.get(key)
 }
 
+// LPUSH create List item in cache if not exists with ttl
+// and prepends element to a list
 func LPUSH(key, val []byte, ttl int) bool {
 	return globalListCache.push(key, val, ttl)
 }
 
+// LTTL returns ttl of key
+// or ttl codes
 func LTTL(key []byte) int {
 	return getTtl(LIST_CACHE, key)
 }
 
+// LPOP returns and removes first element in list
+// if it was last element, list item deleted from cache
+// returns nil, false if not exist
 func LPOP(key []byte) ([]byte, bool) {
 	return globalListCache.pop(key)
 }
 
+// LDEL removes list element by key
 func LDEL(key []byte) bool {
 	return globalListCache.del(key)
 }
 
+// LLEN returns number of not expired cached lists
 func LLEN() int {
 	return globalListCache.countKeys()
 }
 
+// LKEYS returns []string of all not expired keys
 func LKEYS() []string {
 	return globalListCache.keys()
 }
@@ -94,7 +112,7 @@ func (c *ListCache) push(key, val []byte, ttl int) bool {
 		shard.m[string(key)] = v
 	} else {
 		// create list if not exists
-		shard.m[string(key)] = NewList(key, val, ttl)
+		shard.m[string(key)] = NewList(val, ttl)
 	}
 
 	shard.Unlock()

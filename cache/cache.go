@@ -233,10 +233,6 @@ func (a *Atomic) SetSysTS() {
 	atomic.StoreInt64(&a.val, globalSysTimeNow.Get())
 }
 
-func TTL(ct CacheType, key []byte) int {
-	return getTtl(ct, key)
-}
-
 // returns ttl left in seconds if exists
 func getTtl(ct CacheType, key []byte) int {
 	var it item

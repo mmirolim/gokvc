@@ -50,7 +50,7 @@ func del(ctx *fasthttp.RequestCtx) {
 func sttl(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().PeekBytes(PKEY)
 
-	r := cache.TTL(cache.STRING_CACHE, key)
+	r := cache.TTL(key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 	}

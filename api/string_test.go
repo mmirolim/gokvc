@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func TestGETSET(t *testing.T) {
+func TestGET(t *testing.T) {
 
 	key := "keySetGet"
 	val := "valSetGet"
@@ -78,7 +79,7 @@ func TestSTTL(t *testing.T) {
 	req.SetRequestURI(fmt.Sprintf("%s?k=%s", SGET, key))
 	ctx.Init(&req, nil, nil)
 	// wait till expire
-	time.Sleep(time.Duration(ttl) * time.Second)
+	time.Sleep(time.Duration(ttl)*time.Second + 10*time.Millisecond)
 
 	get(&ctx)
 
@@ -113,7 +114,6 @@ func TestSLEN(t *testing.T) {
 	}
 
 	// get keys number
-	// get and check that it deleted
 	req.SetRequestURI(fmt.Sprintf("%s", SLEN))
 	ctx.Init(&req, nil, nil)
 
@@ -137,6 +137,44 @@ func TestSLEN(t *testing.T) {
 		t.Errorf("expect keys number > %d got %s", 2, body)
 	}
 
+}
+
+func TestKEYS(t *testing.T) {
+	var ctx fasthttp.RequestCtx
+	var req fasthttp.Request
+	var res fasthttp.Response
+
+	key1 := "key1KEYS"
+	key2 := "key2KEYS"
+	val := "valKEYS"
+
+	if err := setString(key1, val, 0); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := setString(key2, val, 0); err != nil {
+		t.Error(err)
+		return
+	}
+
+	// get keys
+	req.SetRequestURI(fmt.Sprintf("%s", SKEYS))
+	ctx.Init(&req, nil, nil)
+
+	skeys(&ctx)
+
+	s := ctx.Response.String()
+
+	br := bufio.NewReader(bytes.NewBufferString(s))
+	if err := res.Read(br); err != nil {
+		t.Error(err)
+	}
+
+	body := res.Body()
+	// response should be OK
+	if !(strings.Count(string(body), "key") > 2) {
+		t.Errorf("expected number of keys > %d, got %s", 2, string(body))
+	}
 }
 
 func TestMain(m *testing.M) {
@@ -170,29 +208,6 @@ func setString(key, val string, ttl int) error {
 	// response should be OK
 	if string(body) != string(OK) {
 		return fmt.Errorf("expect resp body %s got %s", OK, body)
-	}
-
-	// get value
-	req.SetRequestURI(fmt.Sprintf("%s?k=%s", SGET, key))
-	ctx.Init(&req, nil, nil)
-
-	get(&ctx)
-
-	s = ctx.Response.String()
-
-	br = bufio.NewReader(bytes.NewBufferString(s))
-	if err := res.Read(br); err != nil {
-		return err
-	}
-
-	if res.Header.StatusCode() != fasthttp.StatusOK {
-		return fmt.Errorf("expect status code %d got %d", fasthttp.StatusOK, res.Header.StatusCode())
-	}
-
-	body = res.Body()
-	// response should be value we previously set
-	if string(body) != val {
-		return fmt.Errorf("expect resp body %s got %s", val, body)
 	}
 
 	return nil

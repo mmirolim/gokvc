@@ -2,11 +2,14 @@ package cache
 
 import "sync"
 
+// Dic cache item struct
 type Dic struct {
 	item
 	dic map[string][]byte
 }
 
+// NewDic initialize Dic
+// creates map and sets first field and val
 func NewDic(fld, val []byte, ttl int) Dic {
 	var d Dic
 	d.SetTTL(ttl)
@@ -15,6 +18,8 @@ func NewDic(fld, val []byte, ttl int) Dic {
 	return d
 }
 
+// DicCache is bucket holding list of caches
+// in stripped map
 type DicCache struct {
 	shards [_CHM_SHARD_NUM]struct {
 		sync.RWMutex
@@ -23,30 +28,48 @@ type DicCache struct {
 	}
 }
 
+// DGET returns map[string][]byte of values in Dic
+// by key, nil, false if not exists or expired
 func DGET(key []byte) (map[string][]byte, bool) {
 	return globalDicCache.get(key)
 }
 
+// DFGET returns field value from Dic defined by key
+// or nil, false if not exist
 func DFGET(key, fld []byte) ([]byte, bool) {
 	return globalDicCache.fget(key, fld)
 }
 
+// DFSET add field and val to Dic, if not exists
+// it initialize and add to cache
 func DFSET(key, fld, val []byte, ttl int) bool {
 	return globalDicCache.fset(key, fld, val, ttl)
 }
 
+// DFDEL removes fiedl from Dic by key
+// false if not exists or expired
 func DFDEL(key, fld []byte) bool {
 	return globalDicCache.fdel(key, fld)
 }
 
+// DDEL removes Dic by key
+// returns false if not exists or expired
 func DDEL(key []byte) bool {
 	return globalDicCache.del(key)
 }
 
+// DTTL returns ttl in seconds of key
+// of ttl codes
+func DTTL(key []byte) int {
+	return getTtl(DIC_CACHE, key)
+}
+
+// DLEN returns number of Dic cached
 func DLEN() int {
 	return globalDicCache.countKeys()
 }
 
+// DKEYS returns []string of all keys of Dics cached
 func DKEYS() []string {
 	return globalDicCache.keys()
 }
