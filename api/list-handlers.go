@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
 	"github.com/mmirolim/kvc/cache"
 	"github.com/valyala/fasthttp"
 )
@@ -40,22 +39,19 @@ func lpop(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().QueryString()
 
 	v, ok := cache.LPOP(key)
-	if ok {
-		fmt.Fprintf(ctx, "%s", v)
+	if !ok {
+		ctx.SetStatusCode(fasthttp.StatusNotFound)
+		return
 	}
 
-	ctx.SetStatusCode(fasthttp.StatusNotFound)
+	ctx.SetBody(v)
 }
 
 func ldel(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().QueryString()
 	cache.LDEL(key)
+
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
-
-	if glog.V(3) {
-		glog.Infof("key %s", key)
-	}
-
 	ctx.SetBody(OK)
 }
 
@@ -63,16 +59,15 @@ func lttl(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().QueryString()
 	r := cache.TTL(cache.LIST_CACHE, key)
 
-	ctx.SetBody([]byte(strconv.Itoa(r)))
-
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		return
 	}
+
+	ctx.SetBody([]byte(strconv.Itoa(r)))
 }
 
 func lkeys(ctx *fasthttp.RequestCtx) {
-	fmt.Fprintf(ctx, "%s", cache.LKEYS())
+	fmt.Fprintf(ctx, "%v", cache.LKEYS())
 }
 
 func llen(ctx *fasthttp.RequestCtx) {

@@ -135,11 +135,13 @@ func (it item) IsExpired() bool {
 }
 
 func (it *item) SetTTL(ttl int) {
-	if ttl <= 0 {
-		it.ttl = KeyHasNoTTLCode
+	if ttl > 0 {
+		// current time + ttl time in nanoseconds
+		it.ttl = CacheTimeNow() + int64(ttl)*1e9
+		return
 	}
-	// current time + ttl time in nanoseconds
-	it.ttl = CacheTimeNow() + int64(ttl)*1e9
+
+	it.ttl = KeyHasNoTTLCode
 }
 
 func (it *item) FormatTTL(in time.Duration) int {

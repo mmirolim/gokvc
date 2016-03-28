@@ -31,9 +31,9 @@ const (
 	// dictionary commands
 	DGET  = "/dget"  // DGET key get all field from dic
 	DDEL  = "/ddel"  // DDEL key delete dic
-	DKGET = "/dkget" // DKGET key field get field from dic
-	DKDEL = "/dkdel" // DKDEL key field delete field in dic
-	DKSET = "/dkset" // DKSET key field val sets field in dic to val
+	DFGET = "/dfget" // DKGET key field get field from dic
+	DFDEL = "/dfdel" // DKDEL key field delete field in dic
+	DFSET = "/dfset" // DKSET key field val sets field in dic to val
 	DTTL  = "/dttl"  // TTL key gets seconds left o expire
 	DKEYS = "/dkeys" // DKEYS gets all keys of dics
 	DLEN  = "/dlen"  // DLEN return number of dic elements
@@ -66,8 +66,9 @@ var (
 		LKEYS:  lkeys,
 		LLEN:   llen,
 		DGET:   dget,
-		DKGET:  dkget,
-		DKSET:  dkset,
+		DFGET:  dfget,
+		DFSET:  dfset,
+		DFDEL:  dfdel,
 		DDEL:   ddel,
 		DTTL:   dttl,
 		DKEYS:  dkeys,

@@ -57,32 +57,39 @@ func LKEYS() [][]byte {
 }
 
 func (c *ListCache) get(key []byte) ([][]byte, bool) {
+	var vals [][]byte
+
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
-	v, ok := shard.m[string(key)]
-	shard.RUnlock()
 
+	v, ok := shard.m[string(key)]
 	if !ok || (ok && v.IsExpired()) {
+		shard.RUnlock()
 		return nil, false
 	}
 
-	vals := make([][]byte, 0, 10)
+	if ok {
+		vals := make([][]byte, 0, 10)
 
-	for e := v.ll.Front(); e != nil; e = e.Next() {
-		vals = append(vals, e.Value.([]byte))
+		for e := v.ll.Front(); e != nil; e = e.Next() {
+			vals = append(vals, e.Value.([]byte))
+		}
 	}
 
-	return vals, ok
+	shard.RUnlock()
 
+	return vals, ok
 }
 
 func (c *ListCache) push(key, val []byte, ttl int) {
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
-	v, ok := shard.m[string(key)]
 
+	v, ok := shard.m[string(key)]
 	if ok {
 		v.ll.PushFront(val)
+		v.SetTTL(ttl)
+		shard.m[string(key)] = v
 	} else {
 		// create list if not exists
 		shard.m[string(key)] = NewList(key, val, ttl)
@@ -95,9 +102,12 @@ func (c *ListCache) pop(key []byte) ([]byte, bool) {
 	var val []byte
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
-	v, ok := shard.m[string(key)]
 
-	if ok {
+	v, ok := shard.m[string(key)]
+	if !ok || (ok && v.IsExpired()) {
+		shard.Unlock()
+		return val, false
+	} else {
 		val = v.ll.Remove(v.ll.Front()).([]byte)
 	}
 
@@ -109,7 +119,9 @@ func (c *ListCache) pop(key []byte) ([]byte, bool) {
 func (c *ListCache) del(key []byte) {
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
+
 	delete(shard.m, string(key))
+
 	shard.Unlock()
 }
 
@@ -120,9 +132,11 @@ func (c *ListCache) keys() [][]byte {
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		shard := c.shards[i]
 		shard.RLock()
+
 		for k := range shard.m {
 			keys = append(keys, shard.m[k].k)
 		}
+
 		shard.RUnlock()
 	}
 
@@ -133,12 +147,14 @@ func (c *ListCache) countKeys() int {
 	var counter int
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		c.shards[i].RLock()
+
 		for k := range c.shards[i].m {
 			// count only not expired keys
 			if !c.shards[i].m[k].IsExpired() {
 				counter++
 			}
 		}
+
 		c.shards[i].RUnlock()
 	}
 	return counter

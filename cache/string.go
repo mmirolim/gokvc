@@ -1,6 +1,10 @@
 package cache
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/golang/glog"
+)
 
 type String struct {
 	item
@@ -34,13 +38,17 @@ func LEN() int {
 func KEYS() [][]byte {
 	return globalStringCache.keys()
 }
+
 func (c *StringCache) get(key []byte) ([]byte, bool) {
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
+
 	v, ok := shard.m[string(key)]
+
 	shard.RUnlock()
 
 	if !ok || (ok && v.IsExpired()) {
+		glog.Infof("strcache get %#v ok %b", v, ok)
 		return nil, false
 	}
 
@@ -57,14 +65,18 @@ func (c *StringCache) set(key, val []byte, ttl int) {
 
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
+
 	shard.m[string(key)] = str
+
 	shard.Unlock()
 }
 
 func (c *StringCache) del(key []byte) {
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
+
 	delete(shard.m, string(key))
+
 	shard.Unlock()
 }
 
@@ -75,9 +87,11 @@ func (c *StringCache) keys() [][]byte {
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		shard := c.shards[i]
 		shard.RLock()
+
 		for k := range shard.m {
 			keys = append(keys, shard.m[k].k)
 		}
+
 		shard.RUnlock()
 	}
 
@@ -88,12 +102,14 @@ func (c *StringCache) countKeys() int {
 	var counter int
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		c.shards[i].RLock()
+
 		for k := range c.shards[i].m {
 			// count only not expired keys
 			if !c.shards[i].m[k].IsExpired() {
 				counter++
 			}
 		}
+
 		c.shards[i].RUnlock()
 	}
 	return counter
