@@ -11,6 +11,5 @@ logs
 *.cpu
 *.mem
 *.block
-kvc
 gokvc
 goapp

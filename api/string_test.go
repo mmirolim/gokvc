@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mmirolim/kvc/cache"
+	"github.com/mmirolim/gokvc/cache"
 	"github.com/valyala/fasthttp"
 )
 

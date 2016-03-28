@@ -18,8 +18,12 @@ test:
 contention-prof:
 	go test ./... -bench=Parallel -blockprofile=prof.block
 
-build:
-	go build -o $(APP) -ldflags "-X main.BuildVersion=$(FORMAT)"
+get-deps:
+	go get ./...
+
+build: get-deps
+	mkdir -p logs
+	go build -o $(APP) -i -ldflags "-X main.BuildVersion=$(FORMAT)"
 
 run: build
 	./$(APP) -log_dir="logs" -stderrthreshold=INFO -v=5

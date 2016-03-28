@@ -4,8 +4,8 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
-	"github.com/mmirolim/kvc/api"
-	"github.com/mmirolim/kvc/cache"
+	"github.com/mmirolim/gokvc/api"
+	"github.com/mmirolim/gokvc/cache"
 
 	"github.com/valyala/fasthttp"
 )
@@ -21,7 +21,7 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-	glog.Infof("hello this is kvc \nI am starting\n on port %s", *addr)
+	glog.Infof("hello this is gokvc \nI am starting\n on port %s", *addr)
 	glog.Infof("Build Version %s", BuildVersion)
 
 	// init cache
