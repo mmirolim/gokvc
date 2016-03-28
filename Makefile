@@ -15,6 +15,9 @@ bench-api:
 test:
 	go test -v ./...
 
+test-race:
+	go test -v -race ./...
+
 contention-prof:
 	go test ./... -bench=Parallel -blockprofile=prof.block
 
@@ -25,5 +28,12 @@ build: get-deps
 	mkdir -p logs
 	go build -o $(APP) -i -ldflags "-X main.BuildVersion=$(FORMAT)"
 
+build-race:  get-deps
+	mkdir -p logs
+	go build -o $(APP) -race -ldflags "-X main.BuildVersion=$(FORMAT)"
+
 run: build
+	./$(APP) -log_dir="logs" -stderrthreshold=INFO -v=5
+
+run-race: build-race
 	./$(APP) -log_dir="logs" -stderrthreshold=INFO -v=5

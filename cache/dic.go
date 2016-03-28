@@ -47,7 +47,7 @@ func DLEN() int {
 	return globalDicCache.countKeys()
 }
 
-func DKEYS() [][]byte {
+func DKEYS() []string {
 	return globalDicCache.keys()
 }
 
@@ -157,15 +157,15 @@ func (c *DicCache) del(key []byte) bool {
 }
 
 // returns slice of keys
-func (c *DicCache) keys() [][]byte {
+func (c *DicCache) keys() []string {
 	// init cap for slice
-	keys := make([][]byte, 0, 1000)
+	keys := make([]string, 0, 1000)
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		shard := c.shards[i]
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, []byte(k))
+			keys = append(keys, k)
 		}
 
 		shard.RUnlock()

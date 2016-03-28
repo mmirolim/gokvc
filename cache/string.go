@@ -31,7 +31,7 @@ func LEN() int {
 	return globalStringCache.countKeys()
 }
 
-func KEYS() [][]byte {
+func KEYS() []string {
 	return globalStringCache.keys()
 }
 
@@ -86,15 +86,15 @@ func (c *StringCache) del(key []byte) bool {
 }
 
 // returns slice of keys
-func (c *StringCache) keys() [][]byte {
+func (c *StringCache) keys() []string {
 	// init cap for slice
-	keys := make([][]byte, 0, 1000)
+	keys := make([]string, 0, 1000)
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		shard := c.shards[i]
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, []byte(k))
+			keys = append(keys, k)
 		}
 
 		shard.RUnlock()

@@ -51,7 +51,7 @@ func LLEN() int {
 	return globalListCache.countKeys()
 }
 
-func LKEYS() [][]byte {
+func LKEYS() []string {
 	return globalListCache.keys()
 }
 
@@ -142,15 +142,15 @@ func (c *ListCache) del(key []byte) bool {
 }
 
 // returns slice of keys
-func (c *ListCache) keys() [][]byte {
+func (c *ListCache) keys() []string {
 	// init cap for slice
-	keys := make([][]byte, 0, 1000)
+	keys := make([]string, 0, 1000)
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
 		shard := c.shards[i]
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, []byte(k))
+			keys = append(keys, k)
 		}
 
 		shard.RUnlock()

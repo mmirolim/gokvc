@@ -23,6 +23,10 @@ const (
 )
 
 var (
+	// GC params
+	gGCRunDelay       = 5 * time.Second
+	gGCShardScanDelay = 10 * time.Millisecond
+
 	initOnce sync.Once
 
 	globalSysTimeNow Atomic
@@ -65,6 +69,146 @@ func initialize() {
 		globalListCache.shards[i].m = make(map[string]List)
 		globalDicCache.shards[i].m = make(map[string]Dic)
 	}
+
+	// start gc
+	gc()
+
+}
+
+// GC, marks expired keys and removes them in batches
+// each cache type scaned concurrently
+func gc() {
+	// start gc for string cache
+	go func() {
+		c := globalStringCache
+		expiredKeys := make(map[int][]string)
+		for {
+			// scan delay
+			time.Sleep(gGCRunDelay)
+
+			// select expired keys
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				c.shards[i].RLock()
+
+				for k := range c.shards[i].m {
+					if c.shards[i].m[k].IsExpired() {
+						expiredKeys[i] = append(expiredKeys[i], k)
+					}
+				}
+
+				c.shards[i].RUnlock()
+				// delay between shard scans
+				time.Sleep(gGCShardScanDelay)
+
+			}
+
+			// remove selected keys in batch
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				shard := &c.shards[i]
+				shard.Lock()
+				for _, key := range expiredKeys[i] {
+					// recheck if expired
+					v, ok := shard.m[key]
+					if ok {
+						if v.IsExpired() {
+							delete(shard.m, key)
+						}
+					}
+
+				}
+				shard.Unlock()
+				// reset slice
+				expiredKeys[i] = expiredKeys[i][:0]
+			}
+		}
+
+	}()
+	// start gc for list cache
+	go func() {
+		c := globalListCache
+		expiredKeys := make(map[int][]string)
+		for {
+			// scan delay
+			time.Sleep(gGCRunDelay)
+			// select expired keys
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				c.shards[i].RLock()
+
+				for k := range c.shards[i].m {
+					if c.shards[i].m[k].IsExpired() {
+						expiredKeys[i] = append(expiredKeys[i], k)
+					}
+				}
+
+				c.shards[i].RUnlock()
+				// delay between shard scans
+				time.Sleep(gGCShardScanDelay)
+			}
+
+			// remove selected keys in batch
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				shard := &c.shards[i]
+				shard.Lock()
+				for _, key := range expiredKeys[i] {
+					// recheck if expired
+					v, ok := shard.m[key]
+					if ok {
+						if v.IsExpired() {
+							delete(shard.m, key)
+						}
+					}
+
+				}
+				shard.Unlock()
+				// reset slice
+				expiredKeys[i] = expiredKeys[i][:0]
+			}
+
+		}
+	}()
+	// start gc for dic cache
+	go func() {
+		c := globalDicCache
+		expiredKeys := make(map[int][]string)
+		for {
+			// scan delay
+			time.Sleep(gGCRunDelay)
+			// select expired keys
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				c.shards[i].RLock()
+
+				for k := range c.shards[i].m {
+					if c.shards[i].m[k].IsExpired() {
+						expiredKeys[i] = append(expiredKeys[i], k)
+					}
+				}
+
+				c.shards[i].RUnlock()
+				// delay between shard scans
+				time.Sleep(gGCShardScanDelay)
+			}
+
+			// remove selected keys in batch
+			for i := 0; i < _CHM_SHARD_NUM; i++ {
+				shard := &c.shards[i]
+				shard.Lock()
+				for _, key := range expiredKeys[i] {
+					// recheck if expired
+					v, ok := shard.m[key]
+					if ok {
+						if v.IsExpired() {
+							delete(shard.m, key)
+						}
+					}
+
+				}
+				shard.Unlock()
+				// reset slice
+				expiredKeys[i] = expiredKeys[i][:0]
+			}
+
+		}
+	}()
 
 }
 
