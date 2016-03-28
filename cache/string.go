@@ -1,10 +1,6 @@
 package cache
 
-import (
-	"sync"
-
-	"github.com/golang/glog"
-)
+import "sync"
 
 type String struct {
 	item
@@ -23,12 +19,12 @@ func GET(key []byte) ([]byte, bool) {
 	return globalStringCache.get(key)
 }
 
-func SET(key, val []byte, ttl int) {
-	globalStringCache.set(key, val, ttl)
+func SET(key, val []byte, ttl int) bool {
+	return globalStringCache.set(key, val, ttl)
 }
 
-func DEL(key []byte) {
-	globalStringCache.del(key)
+func DEL(key []byte) bool {
+	return globalStringCache.del(key)
 }
 
 func LEN() int {
@@ -40,6 +36,9 @@ func KEYS() [][]byte {
 }
 
 func (c *StringCache) get(key []byte) ([]byte, bool) {
+	if key == nil {
+		return nil, false
+	}
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
 
@@ -48,7 +47,6 @@ func (c *StringCache) get(key []byte) ([]byte, bool) {
 	shard.RUnlock()
 
 	if !ok || (ok && v.IsExpired()) {
-		glog.Infof("strcache get %#v ok %b", v, ok)
 		return nil, false
 	}
 
@@ -56,7 +54,10 @@ func (c *StringCache) get(key []byte) ([]byte, bool) {
 }
 
 // ttl in seconds
-func (c *StringCache) set(key, val []byte, ttl int) {
+func (c *StringCache) set(key, val []byte, ttl int) bool {
+	if key == nil || val == nil {
+		return false
+	}
 	var str String
 
 	str.k = key
@@ -69,15 +70,20 @@ func (c *StringCache) set(key, val []byte, ttl int) {
 	shard.m[string(key)] = str
 
 	shard.Unlock()
+	return true
 }
 
-func (c *StringCache) del(key []byte) {
+func (c *StringCache) del(key []byte) bool {
+	if key == nil {
+		return false
+	}
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
 	delete(shard.m, string(key))
 
 	shard.Unlock()
+	return true
 }
 
 // returns slice of keys

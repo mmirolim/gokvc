@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/expvarhandler"
@@ -40,12 +42,13 @@ const (
 )
 
 var (
-	EQUAL_SIGN = []byte("=")
+	// get params
+	PKEY = []byte("k") // param holding key name
+	PFLD = []byte("f") // param holding field name used in dic cmds
+	PVAL = []byte("v") // param holding value
+	PTTL = []byte("t") // param holding ttl
 
 	PONG = []byte("pong") // ping response
-
-	// TTL passed with http headers
-	KEYTTL = []byte("KEYTTL") // KEYTTL seconds
 
 	HTTP_CACHE_CONTROL = []byte("Cache-control")
 	HTTP_NO_CACHE      = []byte("private, max-age=0, no-cache")
@@ -79,19 +82,23 @@ var (
 
 func New() fasthttp.RequestHandler {
 	m := func(ctx *fasthttp.RequestCtx) {
+		start := time.Now()
 		ctx.Response.Header.SetCanonical(HTTP_CACHE_CONTROL, HTTP_NO_CACHE)
-		if glog.V(2) {
-			glog.Infof("url %s", ctx.Path())
-		}
 
-		handler, ok := HandlersMap[string(ctx.Path())]
-
-		if ok {
+		if handler, ok := HandlersMap[string(ctx.Path())]; ok {
 			handler(ctx)
 		} else {
 			ctx.Error("cmd not found", fasthttp.StatusNotFound)
 		}
 
+		if glog.V(2) {
+			glog.Infof(
+				"req duration %f ms url %s args %s",
+				time.Since(start).Seconds()*1000,
+				ctx.Path(),
+				ctx.QueryArgs(),
+			)
+		}
 	}
 
 	return m

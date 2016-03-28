@@ -32,8 +32,8 @@ func LGET(key []byte) ([][]byte, bool) {
 	return globalListCache.get(key)
 }
 
-func LPUSH(key, val []byte, ttl int) {
-	globalListCache.push(key, val, ttl)
+func LPUSH(key, val []byte, ttl int) bool {
+	return globalListCache.push(key, val, ttl)
 }
 
 func LTTL(key []byte) int {
@@ -44,8 +44,8 @@ func LPOP(key []byte) ([]byte, bool) {
 	return globalListCache.pop(key)
 }
 
-func LDEL(key []byte) {
-	globalListCache.del(key)
+func LDEL(key []byte) bool {
+	return globalListCache.del(key)
 }
 
 func LLEN() int {
@@ -58,7 +58,9 @@ func LKEYS() [][]byte {
 
 func (c *ListCache) get(key []byte) ([][]byte, bool) {
 	var vals [][]byte
-
+	if key == nil {
+		return vals, false
+	}
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
 
@@ -81,7 +83,11 @@ func (c *ListCache) get(key []byte) ([][]byte, bool) {
 	return vals, ok
 }
 
-func (c *ListCache) push(key, val []byte, ttl int) {
+func (c *ListCache) push(key, val []byte, ttl int) bool {
+	if key == nil || val == nil {
+		return false
+	}
+
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
@@ -96,10 +102,15 @@ func (c *ListCache) push(key, val []byte, ttl int) {
 	}
 
 	shard.Unlock()
+	return true
 }
 
 func (c *ListCache) pop(key []byte) ([]byte, bool) {
 	var val []byte
+	if key == nil {
+		return val, false
+	}
+
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
@@ -116,13 +127,18 @@ func (c *ListCache) pop(key []byte) ([]byte, bool) {
 	return val, ok
 }
 
-func (c *ListCache) del(key []byte) {
+func (c *ListCache) del(key []byte) bool {
+	if key == nil {
+		return false
+	}
+
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
 	delete(shard.m, string(key))
 
 	shard.Unlock()
+	return true
 }
 
 // returns slice of keys

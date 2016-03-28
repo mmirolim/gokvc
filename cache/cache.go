@@ -98,6 +98,9 @@ func TTL(ct CacheType, key []byte) int {
 func getTtl(ct CacheType, key []byte) int {
 	var it item
 
+	if key == nil {
+		return KeyTTLErrCode
+	}
 	switch ct {
 	case STRING_CACHE:
 		shard := globalStringCache.shards[hash(key)&_MASK]
@@ -114,6 +117,8 @@ func getTtl(ct CacheType, key []byte) int {
 		shard.RLock()
 		it = shard.m[string(key)].item
 		shard.RUnlock()
+	default:
+		return KeyTTLErrCode
 	}
 
 	if it.k == nil || it.IsExpired() {

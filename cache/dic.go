@@ -31,16 +31,16 @@ func DFGET(key, fld []byte) ([]byte, bool) {
 	return globalDicCache.fget(key, fld)
 }
 
-func DFSET(key, fld, val []byte, ttl int) {
-	globalDicCache.fset(key, fld, val, ttl)
+func DFSET(key, fld, val []byte, ttl int) bool {
+	return globalDicCache.fset(key, fld, val, ttl)
 }
 
-func DFDEL(key, fld []byte) {
-	globalDicCache.fdel(key, fld)
+func DFDEL(key, fld []byte) bool {
+	return globalDicCache.fdel(key, fld)
 }
 
-func DDEL(key []byte) {
-	globalDicCache.del(key)
+func DDEL(key []byte) bool {
+	return globalDicCache.del(key)
 }
 
 func DLEN() int {
@@ -53,6 +53,9 @@ func DKEYS() [][]byte {
 
 func (c *DicCache) get(key []byte) (map[string][]byte, bool) {
 	var res map[string][]byte
+	if key == nil {
+		return res, false
+	}
 
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
@@ -73,7 +76,10 @@ func (c *DicCache) get(key []byte) (map[string][]byte, bool) {
 	return res, ok
 }
 
-func (c *DicCache) fset(key, fld, val []byte, ttl int) {
+func (c *DicCache) fset(key, fld, val []byte, ttl int) bool {
+	if key == nil || fld == nil || val == nil {
+		return false
+	}
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
@@ -87,10 +93,15 @@ func (c *DicCache) fset(key, fld, val []byte, ttl int) {
 	}
 
 	shard.Unlock()
+
+	return true
 }
 
 func (c *DicCache) fget(key, fld []byte) ([]byte, bool) {
 	var val []byte
+	if key == nil || fld == nil {
+		return val, false
+	}
 
 	shard := &c.shards[hash(key)&_MASK]
 	shard.RLock()
@@ -108,7 +119,11 @@ func (c *DicCache) fget(key, fld []byte) ([]byte, bool) {
 	return val, ok
 }
 
-func (c *DicCache) fdel(key, fld []byte) {
+func (c *DicCache) fdel(key, fld []byte) bool {
+	if key == nil || fld == nil {
+		return false
+	}
+
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
@@ -116,15 +131,20 @@ func (c *DicCache) fdel(key, fld []byte) {
 
 	shard.Unlock()
 
+	return true
 }
 
-func (c *DicCache) del(key []byte) {
+func (c *DicCache) del(key []byte) bool {
+	if key == nil {
+		return false
+	}
 	shard := &c.shards[hash(key)&_MASK]
 	shard.Lock()
 
 	delete(shard.m, string(key))
 
 	shard.Unlock()
+	return true
 }
 
 // returns slice of keys

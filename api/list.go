@@ -9,10 +9,9 @@ import (
 )
 
 func lget(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
-	v, ok := cache.LGET(key)
-	if ok {
+	if v, ok := cache.LGET(key); ok {
 		fmt.Fprintf(ctx, "%s", v)
 		return
 	}
@@ -22,43 +21,47 @@ func lget(ctx *fasthttp.RequestCtx) {
 
 func lpush(ctx *fasthttp.RequestCtx) {
 	var ttl int
-	key := ctx.QueryArgs().QueryString()
-	val := ctx.QueryArgs().PeekBytes(key)
-
-	ttlVal := ctx.Request.Header.PeekBytes(KEYTTL)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+	val := ctx.QueryArgs().PeekBytes(PVAL)
+	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
 	if ttlVal != nil {
 		ttl, _ = strconv.Atoi(string(ttlVal))
 	}
 
-	cache.LPUSH(key, val, ttl)
-
-	ctx.SetBody(OK)
-}
-
-func lpop(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
-
-	v, ok := cache.LPOP(key)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	if cache.LPUSH(key, val, ttl) {
+		ctx.SetBody(OK)
 		return
 	}
 
-	ctx.SetBody(v)
+	ctx.SetStatusCode(fasthttp.StatusBadRequest)
+}
+
+func lpop(ctx *fasthttp.RequestCtx) {
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+
+	if v, ok := cache.LPOP(key); ok {
+		fmt.Fprintf(ctx, "%s", v)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func ldel(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
-	cache.LDEL(key)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+
+	if cache.LDEL(key) {
+		ctx.SetBody(OK)
+		return
+	}
 
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetBody(OK)
 }
 
 func lttl(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
-	r := cache.TTL(cache.LIST_CACHE, key)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
+	r := cache.TTL(cache.LIST_CACHE, key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 	}

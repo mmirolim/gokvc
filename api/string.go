@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 
@@ -10,53 +9,48 @@ import (
 )
 
 func get(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
-	val, ok := cache.GET(key)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
-		fmt.Fprintf(ctx, "key %s not found\n", key)
+	if v, ok := cache.GET(key); ok {
+		fmt.Fprintf(ctx, "%s", v)
 		return
 	}
 
-	ctx.SetBody(val)
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func set(ctx *fasthttp.RequestCtx) {
 	var ttl int
-	qstr := ctx.QueryArgs().QueryString()
-	n := bytes.Index(qstr, EQUAL_SIGN)
-	if n == -1 {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		fmt.Fprint(ctx, "wrong query format")
-		return
-	}
-
-	ttlVal := ctx.Request.Header.PeekBytes(KEYTTL)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+	val := ctx.QueryArgs().PeekBytes(PVAL)
+	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
 	if ttlVal != nil {
 		ttl, _ = strconv.Atoi(string(ttlVal))
 	}
 
-	key := qstr[:n]
-	val := ctx.QueryArgs().PeekBytes(key)
+	if cache.SET(key, val, ttl) {
+		ctx.SetBody(OK)
+		return
+	}
 
-	cache.SET(key, val, ttl)
-
-	ctx.SetBody(OK)
+	ctx.SetStatusCode(fasthttp.StatusBadRequest)
 }
 
 func del(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
-	cache.DEL(key)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+
+	if cache.DEL(key) {
+		ctx.SetBody(OK)
+		return
+	}
 
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetBody(OK)
 }
 
 func sttl(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
-	r := cache.TTL(cache.STRING_CACHE, key)
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
+	r := cache.TTL(cache.STRING_CACHE, key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 	}

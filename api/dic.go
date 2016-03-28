@@ -9,39 +9,68 @@ import (
 )
 
 func dget(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().QueryString()
+	key := ctx.QueryArgs().PeekBytes(PKEY)
 
-	v, ok := cache.DGET(key)
-	if !ok {
-		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	if v, ok := cache.DGET(key); ok {
+		fmt.Fprintf(ctx, "%s", v)
 		return
 	}
 
-	fmt.Fprintf(ctx, "%s", v)
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func dfget(ctx *fasthttp.RequestCtx) {
-	ctx.SetBody([]byte("not impl"))
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+	fld := ctx.QueryArgs().PeekBytes(PFLD)
+
+	if v, ok := cache.DFGET(key, fld); ok {
+		fmt.Fprintf(ctx, "%s", v)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusNotFound)
 }
 
 func dfset(ctx *fasthttp.RequestCtx) {
-	ctx.SetBody([]byte("not impl"))
+	var ttl int
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+	fld := ctx.QueryArgs().PeekBytes(PFLD)
+	val := ctx.QueryArgs().PeekBytes(PVAL)
+
+	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
+	if ttlVal != nil {
+		ttl, _ = strconv.Atoi(string(ttlVal))
+	}
+
+	if cache.DFSET(key, fld, val, ttl) {
+		ctx.SetBody(OK)
+		return
+	}
+
+	ctx.SetStatusCode(fasthttp.StatusBadRequest)
 }
 
 func dfdel(ctx *fasthttp.RequestCtx) {
-	//	key := ctx.QueryArgs().QueryString()
-	//	ctx.SetBody(cache.DFDEL(key, fld))
+	key := ctx.QueryArgs().PeekBytes(PKEY)
+	fld := ctx.QueryArgs().PeekBytes(PFLD)
+
+	if cache.DFDEL(key, fld) {
+		ctx.SetBody(OK)
+		return
+	}
+
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetBody(OK)
 }
 
 func ddel(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().QueryString()
 
-	cache.DDEL(key)
+	if cache.DDEL(key) {
+		ctx.SetBody(OK)
+		return
+	}
 
 	ctx.SetStatusCode(fasthttp.StatusNotFound)
-	ctx.SetBody(OK)
 }
 
 func dttl(ctx *fasthttp.RequestCtx) {
@@ -53,7 +82,6 @@ func dttl(ctx *fasthttp.RequestCtx) {
 	}
 
 	ctx.SetBody([]byte(strconv.Itoa(r)))
-
 }
 
 func dkeys(ctx *fasthttp.RequestCtx) {
