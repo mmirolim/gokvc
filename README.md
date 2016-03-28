@@ -5,4 +5,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmirolim/gokvc)](https://goreportcard.com/badge/github.com/mmirolim/gokvc)
 
 # gokvc
-Fast key-value cache with support of strings, lists and dictionaries for Go.
+Fast key-value cache with support of strings, lists and dictionaries for Go with simple HTTP API.
+
+# http api
+
+
