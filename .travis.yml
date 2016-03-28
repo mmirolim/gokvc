@@ -1,0 +1,11 @@
+language: go
+
+go:
+  - 1.6
+
+before_install:
+  - make get-deps
+
+script:
+  # run tests on a standard platform
+  - make test-race
