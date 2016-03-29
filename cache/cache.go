@@ -36,6 +36,13 @@ var (
 	globalDicCache    = &DicCache{}
 
 	hasher = crc32.NewIEEE()
+
+	// prepare byte slices for common ttl responses
+	TtlKeyCodes = map[int][]byte{
+		KeyTTLErrCode:   []byte("-3"),
+		KeyNotExistCode: []byte("-2"),
+		KeyHasNoTTLCode: []byte("-1"),
+	}
 )
 
 func CacheTimeNow() int64 {
@@ -242,17 +249,17 @@ func getTtl(ct CacheType, key []byte) int {
 	}
 	switch ct {
 	case STRING_CACHE:
-		shard := globalStringCache.shards[hash(key)&_MASK]
+		shard := &globalStringCache.shards[hash(key)&_MASK]
 		shard.RLock()
 		it = shard.m[string(key)].item
 		shard.RUnlock()
 	case LIST_CACHE:
-		shard := globalListCache.shards[hash(key)&_MASK]
+		shard := &globalListCache.shards[hash(key)&_MASK]
 		shard.RLock()
 		it = shard.m[string(key)].item
 		shard.RUnlock()
 	case DIC_CACHE:
-		shard := globalDicCache.shards[hash(key)&_MASK]
+		shard := &globalDicCache.shards[hash(key)&_MASK]
 		shard.RLock()
 		it = shard.m[string(key)].item
 		shard.RUnlock()

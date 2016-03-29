@@ -21,11 +21,11 @@ func lget(ctx *fasthttp.RequestCtx) {
 
 func lpush(ctx *fasthttp.RequestCtx) {
 	var ttl int
-	key := ctx.QueryArgs().PeekBytes(PKEY)
-	val := ctx.QueryArgs().PeekBytes(PVAL)
-	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
-	if ttlVal != nil {
-		ttl, _ = strconv.Atoi(string(ttlVal))
+	args := ctx.QueryArgs()
+	key := args.PeekBytes(PKEY)
+	val := args.PeekBytes(PVAL)
+	if args.HasBytes(PTTL) {
+		ttl = args.GetUintOrZero("t")
 	}
 
 	if cache.LPUSH(key, val, ttl) {
@@ -64,6 +64,13 @@ func lttl(ctx *fasthttp.RequestCtx) {
 	r := cache.LTTL(key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
+
+	// do not make alloc for common ttl codes
+	v, ok := cache.TtlKeyCodes[r]
+	if ok {
+		ctx.SetBody(v)
+		return
 	}
 
 	ctx.SetBody([]byte(strconv.Itoa(r)))

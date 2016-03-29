@@ -12,7 +12,7 @@ func get(ctx *fasthttp.RequestCtx) {
 	key := ctx.QueryArgs().PeekBytes(PKEY)
 
 	if v, ok := cache.GET(key); ok {
-		fmt.Fprintf(ctx, "%s", v)
+		ctx.SetBody(v)
 		return
 	}
 
@@ -21,11 +21,11 @@ func get(ctx *fasthttp.RequestCtx) {
 
 func set(ctx *fasthttp.RequestCtx) {
 	var ttl int
-	key := ctx.QueryArgs().PeekBytes(PKEY)
-	val := ctx.QueryArgs().PeekBytes(PVAL)
-	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
-	if ttlVal != nil {
-		ttl, _ = strconv.Atoi(string(ttlVal))
+	args := ctx.QueryArgs()
+	key := args.PeekBytes(PKEY)
+	val := args.PeekBytes(PVAL)
+	if args.HasBytes(PTTL) {
+		ttl = args.GetUintOrZero("t")
 	}
 
 	if cache.SET(key, val, ttl) {
@@ -53,6 +53,12 @@ func sttl(ctx *fasthttp.RequestCtx) {
 	r := cache.TTL(key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
+	// do not make alloc for common ttl codes
+	v, ok := cache.TtlKeyCodes[r]
+	if ok {
+		ctx.SetBody(v)
+		return
 	}
 
 	ctx.SetBody([]byte(strconv.Itoa(r)))

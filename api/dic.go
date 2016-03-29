@@ -20,8 +20,9 @@ func dget(ctx *fasthttp.RequestCtx) {
 }
 
 func dfget(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().PeekBytes(PKEY)
-	fld := ctx.QueryArgs().PeekBytes(PFLD)
+	args := ctx.QueryArgs()
+	key := args.PeekBytes(PKEY)
+	fld := args.PeekBytes(PFLD)
 
 	if v, ok := cache.DFGET(key, fld); ok {
 		fmt.Fprintf(ctx, "%s", v)
@@ -33,13 +34,12 @@ func dfget(ctx *fasthttp.RequestCtx) {
 
 func dfset(ctx *fasthttp.RequestCtx) {
 	var ttl int
-	key := ctx.QueryArgs().PeekBytes(PKEY)
-	fld := ctx.QueryArgs().PeekBytes(PFLD)
-	val := ctx.QueryArgs().PeekBytes(PVAL)
-
-	ttlVal := ctx.QueryArgs().PeekBytes(PTTL)
-	if ttlVal != nil {
-		ttl, _ = strconv.Atoi(string(ttlVal))
+	args := ctx.QueryArgs()
+	key := args.PeekBytes(PKEY)
+	fld := args.PeekBytes(PFLD)
+	val := args.PeekBytes(PVAL)
+	if args.HasBytes(PTTL) {
+		ttl = args.GetUintOrZero("t")
 	}
 
 	if cache.DFSET(key, fld, val, ttl) {
@@ -51,8 +51,9 @@ func dfset(ctx *fasthttp.RequestCtx) {
 }
 
 func dfdel(ctx *fasthttp.RequestCtx) {
-	key := ctx.QueryArgs().PeekBytes(PKEY)
-	fld := ctx.QueryArgs().PeekBytes(PFLD)
+	args := ctx.QueryArgs()
+	key := args.PeekBytes(PKEY)
+	fld := args.PeekBytes(PFLD)
 
 	if cache.DFDEL(key, fld) {
 		ctx.SetBody(OK)
@@ -79,6 +80,13 @@ func dttl(ctx *fasthttp.RequestCtx) {
 	r := cache.DTTL(key)
 	if r == cache.KeyNotExistCode {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
+	}
+
+	// do not make alloc for common ttl codes
+	v, ok := cache.TtlKeyCodes[r]
+	if ok {
+		ctx.SetBody(v)
+		return
 	}
 
 	ctx.SetBody([]byte(strconv.Itoa(r)))

@@ -1,6 +1,9 @@
 package cache
 
-import "sync"
+import (
+	"bytes"
+	"sync"
+)
 
 // String cache item struct
 type String struct {
@@ -84,6 +87,15 @@ func (c *StringCache) set(key, val []byte, ttl int) bool {
 	str.SetTTL(ttl)
 
 	shard := &c.shards[hash(key)&_MASK]
+	shard.RLock()
+	v, ok := shard.m[string(key)]
+	if ok {
+		if bytes.Equal(str.b, v.b) && v.ttl == str.ttl {
+			shard.RUnlock()
+			return true
+		}
+	}
+	shard.RUnlock()
 	shard.Lock()
 
 	shard.m[string(key)] = str
