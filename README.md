@@ -107,7 +107,7 @@ Performance wise [fasthttp](https://github.com/valyala/fasthttp) http library us
 
 # Benchmarks
 Reuslt with Go 1.6 on CPU Core™ i7-5500U @ 2.40GHz × 4 (Fedora23)
-## Http API benchmark
+## Cache API benchmark
 
 	go test ./cache -run=none -bench=^Benchmark -cpu=1,3
 	
@@ -140,7 +140,7 @@ Reuslt with Go 1.6 on CPU Core™ i7-5500U @ 2.40GHz × 4 (Fedora23)
 
 
 
-## Cache API benchmarks 
+## Http API benchmarks 
 
 	go test ./api -run=none -bench=^Benchmark -cpu=1,3
 	
