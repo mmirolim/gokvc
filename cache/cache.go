@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"hash/fnv"
+	"hash/crc32"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,7 +35,7 @@ var (
 	globalListCache   = &ListCache{}
 	globalDicCache    = &DicCache{}
 
-	hasher = fnv.New32a()
+	hasher = crc32.NewIEEE()
 )
 
 func CacheTimeNow() int64 {

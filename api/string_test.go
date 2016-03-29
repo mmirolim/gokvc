@@ -177,6 +177,56 @@ func TestKEYS(t *testing.T) {
 	}
 }
 
+func BenchmarkSET(b *testing.B) {
+	var ctx fasthttp.RequestCtx
+	var req fasthttp.Request
+
+	req.SetRequestURI(fmt.Sprintf("%s?k=%s&v=%s&t=%d", SSET, "key1", "val1", 0))
+	ctx.Init(&req, nil, nil)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		set(&ctx)
+	}
+
+}
+
+func BenchmarkGET(b *testing.B) {
+	var ctx fasthttp.RequestCtx
+	var req fasthttp.Request
+
+	req.SetRequestURI(fmt.Sprintf("%s?k=%s&v=%s&t=%d", SSET, "key1", "val1", 0))
+	ctx.Init(&req, nil, nil)
+	// set data
+	set(&ctx)
+	// prepare get request
+	req.SetRequestURI(fmt.Sprintf("%s?k=%s", SGET, "key1"))
+	ctx.Init(&req, nil, nil)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		get(&ctx)
+	}
+}
+
+func BenchmarkTTL(b *testing.B) {
+	var ctx fasthttp.RequestCtx
+	var req fasthttp.Request
+
+	req.SetRequestURI(fmt.Sprintf("%s?k=%s&v=%s&t=%d", SSET, "key1", "val1", 0))
+	ctx.Init(&req, nil, nil)
+	// set data
+	set(&ctx)
+	// prepare get request
+	req.SetRequestURI(fmt.Sprintf("%s?k=%s", STTL, "key1"))
+	ctx.Init(&req, nil, nil)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		sttl(&ctx)
+	}
+}
+
 func TestMain(m *testing.M) {
 	cache.Init()
 	os.Exit(m.Run())

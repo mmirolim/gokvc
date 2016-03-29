@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/mmirolim/gokvc.svg)](https://travis-ci.org/mmirolim/gokvc)
 [![GoDoc](https://godoc.org/github.com/mmirolim/gokvc?status.svg)](http://godoc.org/github.com/mmirolim/gokvc)
-[![Coverage](http://gocover.io/_badge/github.com/mmirolim/gokvc/cache)](http://gocover.io/github.com/mmirolim/gokvc/cache)
-[![Coverage](http://gocover.io/_badge/github.com/mmirolim/gokvc/api)](http://gocover.io/github.com/mmirolim/gokvc/api)
+[![Coverage](https://gocover.io/_badge/github.com/mmirolim/gokvc/cache)](https://gocover.io/github.com/mmirolim/gokvc/cache)
+[![Coverage](https://gocover.io/_badge/github.com/mmirolim/gokvc/api)](https://gocover.io/github.com/mmirolim/gokvc/api)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mmirolim/gokvc)](https://goreportcard.com/badge/github.com/mmirolim/gokvc)
 
 # gokvc
@@ -10,7 +10,7 @@ Fast key-value cache with support of strings, lists and dictionaries for Go with
 # http api
 All params set by using get params. All request has No Cache control headers.
 Performance wise [fasthttp](https://github.com/valyala/fasthttp) http library used.
-I tried to keep allocation low to reduce gc pressure.
+I tried to keep allocation low to reduce gc pressure. All cache buckets use concurrent stripped maps to reduce lock contention. Reflections and interface{} usage avoided as much as possible to improve performance. Expired keys removed by concurrent gc in batches.
 ## Strings
 
 	get the value of a key
