@@ -122,11 +122,13 @@ func (c *StringCache) keys() []string {
 	// init cap for slice
 	keys := make([]string, 0, 1000)
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		shard := c.shards[i]
+		shard := &c.shards[i]
 		shard.RLock()
 
 		for k := range shard.m {
-			keys = append(keys, k)
+			if !shard.m[k].IsExpired() {
+				keys = append(keys, k)
+			}
 		}
 
 		shard.RUnlock()
@@ -138,16 +140,17 @@ func (c *StringCache) keys() []string {
 func (c *StringCache) countKeys() int {
 	var counter int
 	for i := 0; i < _CHM_SHARD_NUM; i++ {
-		c.shards[i].RLock()
+		shard := &c.shards[i]
+		shard.RLock()
 
-		for k := range c.shards[i].m {
+		for k := range shard.m {
 			// count only not expired keys
-			if !c.shards[i].m[k].IsExpired() {
+			if !shard.m[k].IsExpired() {
 				counter++
 			}
 		}
 
-		c.shards[i].RUnlock()
+		shard.RUnlock()
 	}
 	return counter
 }
