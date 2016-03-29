@@ -6,6 +6,7 @@
 
 # gokvc
 Fast key-value cache with support of strings, lists, dictionaries and per-key TTL for Go with convenient HTTP API.
+I tried to keep allocation low to reduce gc pressure. All cache buckets use concurrent stripped maps to reduce lock contention. Reflections and interface{} usage avoided as much as possible to improve performance. Expired keys removed by concurrent gc in batches.
 
 ## Work in progress edge cases, api changes expected
 
@@ -34,7 +35,7 @@ Fast key-value cache with support of strings, lists, dictionaries and per-key TT
 # http api
 All params set by using get params. All request has No Cache control headers.
 Performance wise [fasthttp](https://github.com/valyala/fasthttp) http library used.
-I tried to keep allocation low to reduce gc pressure. All cache buckets use concurrent stripped maps to reduce lock contention. Reflections and interface{} usage avoided as much as possible to improve performance. Expired keys removed by concurrent gc in batches.
+
 ## Strings
 
 	get the value of a key
